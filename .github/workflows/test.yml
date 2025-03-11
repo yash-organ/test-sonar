@@ -27,7 +27,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AccessKey }}
         aws-secret-access-key: ${{ secrets.SecretKey }}
-        aws-region: ${{env.aws_region}}
+        aws-region: ${{ env.aws_region }}
 
     # Step 4: Log in to Amazon ECR
     - name: Login to Amazon ECR
@@ -37,21 +37,20 @@ jobs:
     # Step 5: Build Docker image
     - name: Build Docker image
       run: |
-        docker build -t ${{env.docker_image}} .
+        docker build -t ${{ env.docker_image }} .
 
     # Step 6: Push Docker image to ECR
     - name: Push Docker image to ECR
       run: |
-        docker push ${{env.docker_image}}
+        docker push ${{ env.docker_image }}
 
-    # Step 7: Set up SonarCloud GitHub Action for analysis
+    # Step 7: Run SonarCloud Analysis
     - name: Set up SonarCloud
       uses: sonarsource/sonarcloud-github-action@v1
-      with:
-        sonar-token: ${{ secrets.SONAR_TOKEN }}  # You can omit this if using GitHub App authentication
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Pass the token as an environment variable
 
-    # Step 8: Run SonarCloud analysis
-    - name: Run SonarCloud Analysis
+    - name: Run SonarCloud analysis
       run: |
         sonar-scanner \
           -Dsonar.projectKey=${{ secrets.projectkey }} \
