@@ -25,8 +25,8 @@ jobs:
           # Specify your SonarQube server URL if using a self-hosted SonarQube instance, 
           # otherwise, it will default to SonarCloud
           sonar-host-url: https://sonarcloud.io  # Default SonarCloud URL (you can change this if using a self-hosted SonarQube)
-          projectKey: ${{ secrets.SONAR_PROJECT_KEY }}  # Your project key from SonarQube
-          organization: ${{ secrets.SONAR_ORG_KEY }}  # Your organization key from SonarQube Cloud
+          projectKey: ${{ secrets.PROJECTKEY }}  # Your project key from SonarQube
+          organization: ${{ secrets.ORGANIZATIONKEY }}  # Your organization key from SonarQube Cloud
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Your SonarQube token (stored in GitHub Secrets)
 
