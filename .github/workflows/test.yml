@@ -1,101 +1,82 @@
-name: CI with SonarQube
+name: CI/CD Pipeline to ECR
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - 'master'  # Run on all branches
-  pull_request:
-    types: [opened, synchronize, reopened]
+      - master
 
-permissions:
-  contents: read  # Required for SonarQube analysis
+env:
+  docker_image: "666132446347.dkr.ecr.ap-south-1.amazonaws.com/test:latest"
+  aws_region: "ap-south-1"
 
 jobs:
-  build:
-    name: Build Docker Image and Analyze
+  build-and-push:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Clone Repository
-        run: |
-          echo "Cloning repository..."
-          git clone https://github.com/${{ github.repository }} repo
-          cd repo
-          ls -la  # Verify files exist
+    # Step 1: Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Docker Buildx
-        run: |
-          echo "Setting up Docker Buildx..."
-          sudo apt-get update
-          sudo apt-get install -y buildx
+    # Step 2: Set up Docker Buildx (optional but recommended for advanced builds)
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-      - name: Build Docker Image
-        run: |
-          cd repo
-          echo "Building Docker image..."
-          docker build -t my-app:latest .  # Replace with your Dockerfile's directory and tag
-          docker images  # Verify the image is created
+    # Step 3: Set up AWS CLI
+    - name: Set up AWS CLI
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AccessKey }}
+        aws-secret-access-key: ${{ secrets.SecretKey }}
+        aws-region: ${{env.aws_region}}
 
-      - name: Log in to AWS ECR
-        run: |
-          echo "Logging in to AWS ECR..."
-          aws --version  # Ensure AWS CLI is available
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set default.region ${{ secrets.AWS_REGION }}
+    # Step 4: Log in to Amazon ECR
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password --region ${{env.aws_region}} | docker login --username AWS --password-stdin 666132446347.dkr.ecr.ap-south-1.amazonaws.com
 
-      - name: Push Docker Image to AWS ECR
-        run: |
-          echo "Pushing Docker image to AWS ECR..."
-          # Replace with your ECR repository URI
-          ECR_REPOSITORY_URI=your-aws-ecr-repo-uri
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REPOSITORY_URI
-          docker tag my-app:latest $ECR_REPOSITORY_URI:latest
-          docker push $ECR_REPOSITORY_URI:latest
-          echo "Docker image pushed successfully."
+    # Step 5: Build Docker image
+    - name: Build Docker image
+      run: |
+        docker build -t ${{env.docker_image}} .
+
+    # Step 6: Push Docker image to ECR
+    - name: Push Docker image to ECR
+      run: |
+        docker push ${{env.docker_image}}
 
   sonar-scan:
     name: SonarQube Analysis
-    needs: build
+    needs: build-and-push
     runs-on: ubuntu-latest
+
     steps:
-      - name: Clone Repository
-        run: |
-          echo "Cloning repository..."
-          git clone https://github.com/${{ github.repository }} repo
-          cd repo
+    # Step 1: Checkout the repository again for SonarQube analysis
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: get runner ip address
-        id: ip
-        uses: haythem/public-ip@v1.2
+    # Step 2: Install Java (SonarQube scanner requires Java)
+    - name: Install Java
+      run: |
+        sudo apt update
+        sudo apt install -y openjdk-17-jdk
+        java -version
 
-      # - name: Check SonarQube Connectivity
-      #   run: |
-      #     echo "Checking connectivity to SonarQube..."
-      #     curl -v ${{ secrets.SONAR_HOST_URL }}
+    # Step 3: Install SonarScanner
+    - name: Install SonarScanner
+      run: |
+        curl -fsSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip -o sonar-scanner.zip
+        unzip sonar-scanner.zip
+        sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+        echo "export PATH=\$PATH:/opt/sonar-scanner/bin" >> ~/.bashrc
+        source ~/.bashrc
+        /opt/sonar-scanner/bin/sonar-scanner -v  # Verify installation
 
-      - name: Install Java
-        run: |
-          echo "Installing Java..."
-          sudo apt update
-          sudo apt install -y openjdk-17-jdk
-          java -version
-
-      - name: Install SonarScanner
-        run: |
-          echo "Installing SonarScanner..."
-          curl -fsSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip -o sonar-scanner.zip
-          unzip sonar-scanner.zip
-          sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
-          echo "export PATH=\$PATH:/opt/sonar-scanner/bin" >> ~/.bashrc
-          source ~/.bashrc
-          /opt/sonar-scanner/bin/sonar-scanner -v  # Verify installation
-
-      - name: Run SonarQube Scan
-        run: |
-          cd repo
-          /opt/sonar-scanner/bin/sonar-scanner \
-            -Dsonar.projectKey=${{secrets.projectkey}} \
-            -Dsonar.organization=${{secrets.organizationkey}} \
-            -Dsonar.sources=. \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+    # Step 4: Run SonarQube Scan
+    - name: Run SonarQube Scan
+      run: |
+        /opt/sonar-scanner/bin/sonar-scanner \
+          -Dsonar.projectKey=${{ secrets.projectkey }} \
+          -Dsonar.organization=${{ secrets.organizationkey}} \
+          -Dsonar.sources=. \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
