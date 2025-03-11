@@ -1,40 +1,101 @@
-name: Build
+name: CI with SonarQube
 
 on:
+  workflow_dispatch:
   push:
     branches:
-      - main  # Trigger on push to main branch
+      - 'master'  # Run on all branches
   pull_request:
-    types: [opened, synchronize, reopened]  # Trigger on PR events
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read  # Required for SonarQube analysis
 
 jobs:
-  sonarqube:
-    name: SonarQube Analysis
+  build:
+    name: Build Docker Image and Analyze
     runs-on: ubuntu-latest
-
     steps:
-      # Step to checkout the code from the repository
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Disable shallow clones for better analysis coverage
+      - name: Clone Repository
+        run: |
+          echo "Cloning repository..."
+          git clone https://github.com/${{ github.repository }} repo
+          cd repo
+          ls -la  # Verify files exist
 
-      # Step to set up SonarQube scan with SonarSource action
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        with:
-          # Specify your SonarQube server URL if using a self-hosted SonarQube instance, 
-          # otherwise, it will default to SonarCloud
-          sonar-host-url: https://sonarcloud.io  # Default SonarCloud URL (you can change this if using a self-hosted SonarQube)
-          projectKey: ${{ secrets.PROJECTKEY }}  # Your project key from SonarQube
-          organization: ${{ secrets.ORGANIZATIONKEY }}  # Your organization key from SonarQube Cloud
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Your SonarQube token (stored in GitHub Secrets)
+      - name: Set up Docker Buildx
+        run: |
+          echo "Setting up Docker Buildx..."
+          sudo apt-get update
+          sudo apt-get install -y buildx
 
-      # (Optional) Cache dependencies if needed for faster builds (you can remove if unnecessary)
-      # - name: Cache dependencies
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/.m2  # Example for Maven, adjust for your language's dependencies
-      #     key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-maven-
+      - name: Build Docker Image
+        run: |
+          cd repo
+          echo "Building Docker image..."
+          docker build -t my-app:latest .  # Replace with your Dockerfile's directory and tag
+          docker images  # Verify the image is created
+
+      - name: Log in to AWS ECR
+        run: |
+          echo "Logging in to AWS ECR..."
+          aws --version  # Ensure AWS CLI is available
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region ${{ secrets.AWS_REGION }}
+
+      - name: Push Docker Image to AWS ECR
+        run: |
+          echo "Pushing Docker image to AWS ECR..."
+          # Replace with your ECR repository URI
+          ECR_REPOSITORY_URI=your-aws-ecr-repo-uri
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REPOSITORY_URI
+          docker tag my-app:latest $ECR_REPOSITORY_URI:latest
+          docker push $ECR_REPOSITORY_URI:latest
+          echo "Docker image pushed successfully."
+
+  sonar-scan:
+    name: SonarQube Analysis
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repository
+        run: |
+          echo "Cloning repository..."
+          git clone https://github.com/${{ github.repository }} repo
+          cd repo
+
+      - name: get runner ip address
+        id: ip
+        uses: haythem/public-ip@v1.2
+
+      # - name: Check SonarQube Connectivity
+      #   run: |
+      #     echo "Checking connectivity to SonarQube..."
+      #     curl -v ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Install Java
+        run: |
+          echo "Installing Java..."
+          sudo apt update
+          sudo apt install -y openjdk-17-jdk
+          java -version
+
+      - name: Install SonarScanner
+        run: |
+          echo "Installing SonarScanner..."
+          curl -fsSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip -o sonar-scanner.zip
+          unzip sonar-scanner.zip
+          sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+          echo "export PATH=\$PATH:/opt/sonar-scanner/bin" >> ~/.bashrc
+          source ~/.bashrc
+          /opt/sonar-scanner/bin/sonar-scanner -v  # Verify installation
+
+      - name: Run SonarQube Scan
+        run: |
+          cd repo
+          /opt/sonar-scanner/bin/sonar-scanner \
+            -Dsonar.projectKey=${{secrets.projectkey}} \
+            -Dsonar.organization=${{secrets.organizationkey}} \
+            -Dsonar.sources=. \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
