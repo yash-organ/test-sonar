@@ -47,8 +47,7 @@ jobs:
     - name: Run SonarCloud Analysis
       run: |
         sonar-scanner \
-          -Dsonar.projectKey=${{ secrets. }} \
-          -Dsonar.organization=${{ secrets. }} \
-          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.projectKey=${{ secrets.projectkey }} \
+          -Dsonar.organization=${{ secrets.organizationkey }} \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
       
