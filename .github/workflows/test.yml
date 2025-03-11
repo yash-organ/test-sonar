@@ -1,4 +1,5 @@
-name: CI/CD Pipeline to ECR
+name: CI/CD Pipeline to ECR and SonarCloud
+
 on:
   push:
     branches:
@@ -7,6 +8,9 @@ on:
 env:
   docker_image: "666132446347.dkr.ecr.ap-south-1.amazonaws.com/test:latest"
   aws_region: "ap-south-1"
+  SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+  SONAR_ORG_KEY: ${{ secrets.SONAR_ORG_KEY }}
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
   build-and-push:
@@ -44,17 +48,13 @@ jobs:
       run: |
         docker push ${{ env.docker_image }}
 
-    # Step 7: Set up SonarCloud and run the analysis
-    - name: Set up SonarCloud with Java 17
-      uses: sonarsource/sonarcloud-github-action@v2
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Using the secret from GitHub Secrets
-        JAVA_HOME: /usr/lib/jvm/java-17-openjdk  # Specify Java 17 here
-
-    - name: Run SonarCloud analysis
+    # Step 7: Run SonarCloud Analysis
+    - name: Run SonarCloud Analysis
       run: |
         sonar-scanner \
-          -Dsonar.projectKey=${{ secrets.projectkey }} \
-          -Dsonar.organization=${{ secrets.organizationkey }} \
+          -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }} \
+          -Dsonar.organization=${{ secrets.SONAR_ORG_KEY }} \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.projectBaseDir=.
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
