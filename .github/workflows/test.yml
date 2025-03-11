@@ -51,9 +51,12 @@ jobs:
     # Step 7: Install SonarScanner
     - name: Install SonarScanner
       run: |
-        curl -sS https://downloads.sonarsource.com/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip -o sonar-scanner.zip
+        # Download and install SonarScanner
+        curl -sS https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.0.2841-linux.zip -o sonar-scanner.zip
+        # Verify the file is downloaded
+        if [ ! -f sonar-scanner.zip ]; then echo "Failed to download SonarScanner"; exit 1; fi
         unzip sonar-scanner.zip
-        sudo mv sonar-scanner-4.8.0.2856-linux /opt/sonar-scanner
+        sudo mv sonar-scanner-5.0.0.2841-linux /opt/sonar-scanner
         sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
 
     # Step 8: Run SonarCloud Analysis
