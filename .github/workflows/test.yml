@@ -46,7 +46,7 @@ jobs:
 
     # Step 7: Set up SonarCloud and run the analysis
     - name: Set up SonarCloud with Java 17
-      uses: sonarsource/sonarcloud-github-action@v1
+      uses: sonarsource/sonarcloud-github-action@v2
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Using the secret from GitHub Secrets
         JAVA_HOME: /usr/lib/jvm/java-17-openjdk  # Specify Java 17 here
