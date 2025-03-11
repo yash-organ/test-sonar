@@ -1,13 +1,25 @@
 name: CI/CD Pipeline to ECR
+<<<<<<< HEAD
+=======
+
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
 on:
   push:
     branches:
       - master
+<<<<<<< HEAD
       
 env:
   docker_image: "666132446347.dkr.ecr.ap-south-1.amazonaws.com/test:latest"
   aws_region: "ap-south-1"   
   
+=======
+
+env:
+  docker_image: "666132446347.dkr.ecr.ap-south-1.amazonaws.com/test:latest"
+  aws_region: "ap-south-1"
+
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -32,15 +44,64 @@ jobs:
     # Step 4: Log in to Amazon ECR
     - name: Login to Amazon ECR
       run: |
+<<<<<<< HEAD
        aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 666132446347.dkr.ecr.ap-south-1.amazonaws.com
        
+=======
+        aws ecr get-login-password --region ${{env.aws_region}} | docker login --username AWS --password-stdin 666132446347.dkr.ecr.ap-south-1.amazonaws.com
+
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
     # Step 5: Build Docker image
     - name: Build Docker image
       run: |
         docker build -t ${{env.docker_image}} .
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
     # Step 6: Push Docker image to ECR
     - name: Push Docker image to ECR
       run: |
         docker push ${{env.docker_image}}
+<<<<<<< HEAD
       
+=======
+
+  sonar-scan:
+    name: SonarQube Analysis
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the repository again for SonarQube analysis
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Step 2: Install Java (SonarQube scanner requires Java)
+    - name: Install Java
+      run: |
+        sudo apt update
+        sudo apt install -y openjdk-17-jdk
+        java -version
+
+    # Step 3: Install SonarScanner
+    - name: Install SonarScanner
+      run: |
+        curl -fsSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip -o sonar-scanner.zip
+        unzip sonar-scanner.zip
+        sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+        echo "export PATH=\$PATH:/opt/sonar-scanner/bin" >> ~/.bashrc
+        source ~/.bashrc
+        /opt/sonar-scanner/bin/sonar-scanner -v  # Verify installation
+
+    # Step 4: Run SonarQube Scan
+    - name: Run SonarQube Scan
+      run: |
+        /opt/sonar-scanner/bin/sonar-scanner \
+          -Dsonar.projectKey=${{ secrets.projectkey }} \
+          -Dsonar.organization=${{ secrets.organizationkey}} \
+          -Dsonar.sources=. \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
