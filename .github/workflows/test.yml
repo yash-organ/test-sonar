@@ -1,19 +1,40 @@
 name: Build
+
 on:
   push:
     branches:
-      - main
+      - main  # Trigger on push to main branch
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]  # Trigger on PR events
+
 jobs:
   sonarqube:
-    name: SonarQube
+    name: SonarQube Analysis
     runs-on: ubuntu-latest
+
     steps:
+      # Step to checkout the code from the repository
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0  # Disable shallow clones for better analysis coverage
+
+      # Step to set up SonarQube scan with SonarSource action
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          # Specify your SonarQube server URL if using a self-hosted SonarQube instance, 
+          # otherwise, it will default to SonarCloud
+          sonar-host-url: https://sonarcloud.io  # Default SonarCloud URL (you can change this if using a self-hosted SonarQube)
+          projectKey: ${{ secrets.SONAR_PROJECT_KEY }}  # Your project key from SonarQube
+          organization: ${{ secrets.SONAR_ORG_KEY }}  # Your organization key from SonarQube Cloud
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Your SonarQube token (stored in GitHub Secrets)
+
+      # (Optional) Cache dependencies if needed for faster builds (you can remove if unnecessary)
+      # - name: Cache dependencies
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ~/.m2  # Example for Maven, adjust for your language's dependencies
+      #     key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-maven-
