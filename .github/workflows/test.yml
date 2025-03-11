@@ -79,4 +79,5 @@ jobs:
           -Dsonar.projectKey=${{ secrets.projectkey }} \
           -Dsonar.organization=${{ secrets.organizationkey}} \
           -Dsonar.sources=. \
+          -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
