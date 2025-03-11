@@ -44,11 +44,12 @@ jobs:
       run: |
         docker push ${{ env.docker_image }}
 
-    # Step 7: Run SonarCloud Analysis
-    - name: Set up SonarCloud
+    # Step 7: Set up SonarCloud and run the analysis
+    - name: Set up SonarCloud with Java 17
       uses: sonarsource/sonarcloud-github-action@v1
       env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Pass the token as an environment variable
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Using the secret from GitHub Secrets
+        JAVA_HOME: /usr/lib/jvm/java-17-openjdk  # Specify Java 17 here
 
     - name: Run SonarCloud analysis
       run: |
