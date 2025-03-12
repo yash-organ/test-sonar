@@ -1,14 +1,25 @@
 name: CI/CD Pipeline to ECR
+<<<<<<< HEAD
+=======
 
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
 on:
   push:
     branches:
       - master
+<<<<<<< HEAD
+      
+env:
+  docker_image: "666132446347.dkr.ecr.ap-south-1.amazonaws.com/test:latest"
+  aws_region: "ap-south-1"   
+  
+=======
 
 env:
   docker_image: "666132446347.dkr.ecr.ap-south-1.amazonaws.com/test:latest"
   aws_region: "ap-south-1"
 
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -33,17 +44,29 @@ jobs:
     # Step 4: Log in to Amazon ECR
     - name: Login to Amazon ECR
       run: |
+<<<<<<< HEAD
+       aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 666132446347.dkr.ecr.ap-south-1.amazonaws.com
+       
+=======
         aws ecr get-login-password --region ${{env.aws_region}} | docker login --username AWS --password-stdin 666132446347.dkr.ecr.ap-south-1.amazonaws.com
 
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
     # Step 5: Build Docker image
     - name: Build Docker image
       run: |
         docker build -t ${{env.docker_image}} .
+<<<<<<< HEAD
+        
+=======
 
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
     # Step 6: Push Docker image to ECR
     - name: Push Docker image to ECR
       run: |
         docker push ${{env.docker_image}}
+<<<<<<< HEAD
+      
+=======
 
   sonar-scan:
     name: SonarQube Analysis
@@ -81,3 +104,4 @@ jobs:
           -Dsonar.sources=. \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+>>>>>>> c077c4f11a5ed3c0731a96876d2e20f17a53392c
